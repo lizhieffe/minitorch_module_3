@@ -169,7 +169,7 @@ def tensor_map(
         in_strides: Strides,
     ) -> None:
         # When `out` and `in` are stride-aligned, avoid indexing
-        if np.array_equal(in_strides, out_strides):
+        if np.array_equal(in_strides, out_strides) and np.array_equal(in_shape, out_shape):
             # for out_pos in prange(out.shape[0]):
             for out_pos in range(out.shape[0]):
                 out[out_pos] = fn(in_storage[out_pos])
