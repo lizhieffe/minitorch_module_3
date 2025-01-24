@@ -25,7 +25,7 @@ def id(a) -> float:
 
 
 # - add
-def add(a: float, b: float) -> float:
+def add(a, b):
     return a + b
 
 
@@ -74,7 +74,6 @@ def relu(a):
 
 # - log
 def log(a):
-    # print(f"===lizhi operators log {a=}")
     ret = math.log(a)
     return ret
 

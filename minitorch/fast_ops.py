@@ -169,10 +169,10 @@ def tensor_map(
         in_strides: Strides,
     ) -> None:
         # When `out` and `in` are stride-aligned, avoid indexing
-        if in_strides == out_strides:
+        if np.array_equal(in_strides, out_strides):
             # for out_pos in prange(out.shape[0]):
             for out_pos in range(out.shape[0]):
-                out[out_pos] = in_storage[out_pos]
+                out[out_pos] = fn(in_storage[out_pos])
             return
 
         # Not stride-aligned.
@@ -226,7 +226,15 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
+        # When `out`, `a_storage`, `b_storage` are stride-aligned, avoid indexing
+        if np.array_equal(a_strides, b_strides) and np.array_equal(out_strides, a_strides) and np.array_equal(a_shape, b_shape) and np.array_equal(a_shape, out_shape):
+            for i in prange(out.shape[0]):
+                out[i] = fn(a_storage[i], b_storage[i])
+            return
+
+        # When not stride-aligned.
         for out_pos in prange(out.shape[0]):
+        # for out_pos in range(out.shape[0]):
             # Note: dtype cannot use python int type which is incompatible with numba.
             out_idx = np.zeros(out_shape.shape, dtype=np.int64)
             # out_pos -> out_idx
@@ -247,6 +255,8 @@ def tensor_zip(
             b_val = b_storage[b_pos]
 
             out[out_pos] = fn(a_val, b_val)
+
+    # return _zip
 
     return njit(_zip, parallel=True)  # type: ignore
 
@@ -281,8 +291,24 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        for i in prange(out.shape[0]):
+            # Generate out_index
+            out_index = np.zeros(out_shape.shape)
+            to_index(i, out_shape, out_index)
+
+            reduced = 0.0
+            for j in range(a_shape[reduce_dim]):
+                a_index = out_index
+                a_index[reduce_dim] = j
+                a_pos = index_to_position(a_index, a_strides)
+                a_val = a_storage[a_pos]
+
+                if j == 0:
+                    reduced = a_val
+                else:
+                    reduced = fn(reduced, a_val)
+
+            out[i] = reduced
 
     return njit(_reduce, parallel=True)  # type: ignore
 
