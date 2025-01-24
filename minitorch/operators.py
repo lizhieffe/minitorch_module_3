@@ -62,7 +62,10 @@ def sigmoid(a):
     return 1 / (1 + math.exp(-1 * a))
 
 def sigmoid_back(a):
-    return sigmoid(a) * (1 - sigmoid(a))
+    # For some reason, calling sigmoid() directly failed in Numba.
+    def _sigmoid(a):
+      return 1 / (1 + math.exp(-1 * a))
+    return _sigmoid(a) * (1 - _sigmoid(a))
 
 # - relu
 def relu(a):
