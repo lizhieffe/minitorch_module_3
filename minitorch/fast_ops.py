@@ -168,8 +168,26 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        # When `out` and `in` are stride-aligned, avoid indexing
+        if in_strides == out_strides:
+            # for out_pos in prange(out.shape[0]):
+            for out_pos in range(out.shape[0]):
+                out[out_pos] = in_storage[out_pos]
+            return
+
+        # Not stride-aligned.
+        for out_pos in prange(out.shape[0]):
+            out_idx = np.zeros(out_shape.shape, dtype=np.int64)
+            in_idx = np.zeros(in_shape.shape, dtype=np.int64)
+
+            # out_pos -> out_idx
+            to_index(out_pos, out_shape, out_idx)
+            # out_idx -> in_idx
+            broadcast_index(out_idx, out_shape, in_shape, in_idx)
+            # in_idx -> in_pos
+            in_pos = index_to_position(in_idx, in_strides)
+
+            out[out_pos] = fn(in_storage[in_pos])
 
     return njit(_map, parallel=True)  # type: ignore
 
@@ -208,8 +226,27 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 3.1.
-        raise NotImplementedError("Need to implement for Task 3.1")
+        for out_pos in prange(out.shape[0]):
+            # Note: dtype cannot use python int type which is incompatible with numba.
+            out_idx = np.zeros(out_shape.shape, dtype=np.int64)
+            # out_pos -> out_idx
+            to_index(out_pos, out_shape, out_idx)
+
+            a_idx = np.zeros(a_shape.shape, dtype=np.int64)
+            # out_idx -> a_idx
+            broadcast_index(out_idx, out_shape, a_shape, a_idx)
+            # a_idx -> a_pos
+            a_pos = index_to_position(a_idx, a_strides)
+            a_val = a_storage[a_pos]
+
+            b_idx = np.zeros(b_shape.shape, dtype=np.int64)
+            # out_idx -> b_idx
+            broadcast_index(out_idx, out_shape, b_shape, b_idx)
+            # b_idx -> b_pos
+            b_pos = index_to_position(b_idx, b_strides)
+            b_val = b_storage[b_pos]
+
+            out[out_pos] = fn(a_val, b_val)
 
     return njit(_zip, parallel=True)  # type: ignore
 

@@ -41,7 +41,9 @@ class MathTest(Generic[A]):
     @staticmethod
     def div(a: A) -> A:
         "Divide by a constant"
-        return a / 5
+
+        ret = a / 5
+        return ret
 
     @staticmethod
     def inv(a: A) -> A:
