@@ -42,8 +42,10 @@ def index_to_position(index: Index, strides: Strides) -> int:
     Returns:
         Position in storage
     """
-    # Numba only support float or real values for np linear operations.
-    return int(np.dot(index.astype(np.float64), strides.astype(np.float64)))
+    ret = 0
+    for i in range(len(index.shape)):
+        ret += index[i] * strides[i]
+    return ret
 
 
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:

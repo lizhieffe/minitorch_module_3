@@ -60,6 +60,7 @@ class CudaOps(TensorOps):
             # Instantiate and run the cuda kernel.
             threadsperblock = THREADS_PER_BLOCK
             blockspergrid = (out.size + THREADS_PER_BLOCK - 1) // THREADS_PER_BLOCK
+            print(f"---lizhi cuda_ops {a.tuple()[0]=} {a.tuple()[0][0]=}")
             f[blockspergrid, threadsperblock](*out.tuple(), out.size, *a.tuple())  # type: ignore
             return out
 
@@ -173,15 +174,20 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
+        # The assumption is that the cuda grids and blocks are initialized as 1-D.
+        i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+        if i >= out_size:
+            return
+
         out_index = cuda.local.array(MAX_DIMS, numba.int32)
         in_index = cuda.local.array(MAX_DIMS, numba.int32)
-        i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
 
-        if i >= out.shape[0]:
-            return
-        
         to_index(i, out_shape, out_index)
+
+        # broadcast_index(out_index, out_shape, in_shape, in_index)
+        # in_pos = index_to_position(in_index, in_strides)
         in_pos = index_to_position(out_index, in_strides)
+
         in_val = in_storage[in_pos]
         out[i] = fn(in_val)
 

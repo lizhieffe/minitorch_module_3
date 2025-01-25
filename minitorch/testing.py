@@ -38,22 +38,22 @@ class MathTest(Generic[A]):
     #     "Multiply a constant to the argument"
     #     return 5 * a
 
-    @staticmethod
-    def div(a: A) -> A:
-        "Divide by a constant"
+    # @staticmethod
+    # def div(a: A) -> A:
+    #     "Divide by a constant"
 
-        ret = a / 5
-        return ret
+    #     ret = a / 5
+    #     return ret
 
     # @staticmethod
     # def inv(a: A) -> A:
     #     "Invert after adding"
     #     return operators.inv(a + 3.5)
 
-    # @staticmethod
-    # def sig(a: A) -> A:
-    #     "Apply sigmoid"
-    #     return operators.sigmoid(a)
+    @staticmethod
+    def sig(a: A) -> A:
+        "Apply sigmoid"
+        return operators.sigmoid(a)
 
     # @staticmethod
     # def log(a: A) -> A:
