@@ -113,6 +113,7 @@ class FastOps(TensorOps):
 
         """
         # Make these always be a 3 dimensional multiply
+        # The input matrix are either 2 or 3 dims. If 3, it is for the batch dim. If it is 2, it is extended to 3.
         both_2d = 0
         if len(a.shape) == 2:
             a = a.contiguous().view(1, a.shape[0], a.shape[1])
@@ -326,6 +327,8 @@ def _tensor_matrix_multiply(
 ) -> None:
     """NUMBA tensor matrix multiply function.
 
+    The dim of a, b, out are all 3. See the matrix_multiply() fn in this file for details.
+
     Should work for any tensor shapes that broadcast as long as
 
     ```
@@ -356,11 +359,44 @@ def _tensor_matrix_multiply(
         None : Fills in `out`
 
     """
+    assert a_shape[-1] == b_shape[-2]
+    assert a_shape.shape[0] == 3
+    assert len(a_shape.shape) == len(b_shape.shape)
     a_batch_stride = a_strides[0] if a_shape[0] > 1 else 0
     b_batch_stride = b_strides[0] if b_shape[0] > 1 else 0
 
-    # TODO: Implement for Task 3.2.
-    raise NotImplementedError("Need to implement for Task 3.2")
+    for i in prange(out.shape[0]):
+        out_idx = np.zeros(out_shape.shape)
+        to_index(i, out_shape, out_idx)
+
+        inner_sum = 0
+        for j in range(a_shape[-1]):
+            # Get a_value
+            a_big_idx = out_idx.copy()
+            a_big_idx[2] = j
+            # There might be broadcast on the dim 0 (e.g. 1 element extended to N elements). So cast the a_idx back to a's original shape.
+            a_big_shape = a_shape.copy()
+            a_big_shape[0] = out_shape[0]
+            a_idx = np.zeros(a_shape.shape)
+            broadcast_index(a_big_idx, a_big_shape, a_shape, a_idx)
+            a_pos = index_to_position(a_idx, a_strides)
+            a_val = a_storage[a_pos]
+
+            # Get b_value
+            b_big_idx = out_idx.copy()
+            b_big_idx[1] = j
+            # There might be broadcast on the dim 0 (e.g. 1 element extended to N elements). So cast the b_idx back to b's original shape.
+            b_big_shape = b_shape.copy()
+            b_big_shape[0] = out_shape[0]
+            b_idx = np.zeros(b_shape.shape)
+            broadcast_index(b_big_idx, b_big_shape, b_shape, b_idx)
+            b_pos = index_to_position(b_idx, b_strides)
+            b_val = b_storage[b_pos]
+
+            
+            inner_sum += (a_val * b_val)
+
+        out[i] = inner_sum
 
 
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)
