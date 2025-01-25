@@ -73,6 +73,9 @@ class CudaOps(TensorOps):
         def ret(a: Tensor, b: Tensor) -> Tensor:
             c_shape = shape_broadcast(a.shape, b.shape)
             out = a.zeros(c_shape)
+
+            # The threadsperblock and blockspergrid are both 1D. This makes the
+            # block and grid also 1D.
             threadsperblock = THREADS_PER_BLOCK
             blockspergrid = (out.size + (threadsperblock - 1)) // threadsperblock
             f[blockspergrid, threadsperblock](  # type: ignore
@@ -173,8 +176,14 @@ def tensor_map(
         out_index = cuda.local.array(MAX_DIMS, numba.int32)
         in_index = cuda.local.array(MAX_DIMS, numba.int32)
         i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
-        # TODO: Implement for Task 3.3.
-        raise NotImplementedError("Need to implement for Task 3.3")
+
+        if i >= out.shape[0]:
+            return
+        
+        to_index(i, out_shape, out_index)
+        in_pos = index_to_position(out_index, in_strides)
+        in_val = in_storage[in_pos]
+        out[i] = fn(in_val)
 
     return cuda.jit()(_map)  # type: ignore
 
