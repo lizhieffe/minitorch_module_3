@@ -214,17 +214,38 @@ class IsClose(Function):
 
 
 class Permute(Function):
-    @staticmethod
-    def forward(ctx: Context, a: Tensor, order: Tensor) -> Tensor:
-        ctx.save_for_backward(a, order)
-        assert order.dims == 1
-        order_list = [int(order[i]) for i in range(order.shape[0])]
-        return a._new(a._tensor.permute(*order_list))
+    # @staticmethod
+    # def forward(ctx: Context, a: Tensor, order: Tensor) -> Tensor:
+    #     ctx.save_for_backward(a, order)
+    #     assert order.dims == 1
+    #     order_list = [int(order[i]) for i in range(order.shape[0])]
+    #     return a._new(a._tensor.permute(*order_list))
+
+    # @staticmethod
+    # def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
+    #     (a, order) = ctx.saved_tensors
+    #     return a.ones(a._tensor.shape), a.ones(order._tensor.shape)
 
     @staticmethod
-    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
-        (a, order) = ctx.saved_tensors
-        return a.ones(a._tensor.shape), a.ones(order._tensor.shape)
+    def forward(ctx, a, order):
+        ctx.save_for_backward(a, order)
+        tens_store = a._tensor.permute(*order)
+        return Tensor.make(
+            tens_store._storage,
+            tens_store.shape,
+            tens_store.strides,
+            backend=a.backend,
+        )
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        a, order = ctx.saved_values
+        return Tensor.make(
+            grad_output._tensor._storage,
+            a._tensor.shape,
+            a._tensor.strides,
+            backend=grad_output.backend,
+        )
 
 
 class View(Function):
