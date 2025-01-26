@@ -224,30 +224,25 @@ class Permute(Function):
     # @staticmethod
     # def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
     #     (a, order) = ctx.saved_tensors
-    #     return a.ones(a._tensor.shape), a.ones(order._tensor.shape)
+    #     # return a.ones(a._tensor.shape) * grad_output, a.ones(order._tensor.shape) * grad_output
+    #     # return a.make(grad_output._tensor._storage, a._tensor.shape, a._tensor.strides, backend=grad_output.backend), a.make(grad_output._tensor._storage, order._tensor.shape, order._tensor.strides, backend=grad_output.backend)
+    #     return a.make(grad_output._tensor._storage, a._tensor.shape, a._tensor.strides, backend=grad_output.backend), a.zeros(order._tensor.shape)
+
 
     @staticmethod
-    def forward(ctx, a, order):
-        ctx.save_for_backward(a, order)
-        tens_store = a._tensor.permute(*order)
-        return Tensor.make(
-            tens_store._storage,
-            tens_store.shape,
-            tens_store.strides,
-            backend=a.backend,
-        )
+    def forward(ctx: Context, a: Tensor, order: Tensor) -> Tensor:
+        # TODO: Implement for Task 2.3.
+        order2 = [int(order[i]) for i in range(order.size)]
+        ctx.save_for_backward(a._tensor)
+        tensor_data = a._tensor.permute(*order2)
+        return a._new(tensor_data)
 
     @staticmethod
-    def backward(ctx, grad_output):
-        a, order = ctx.saved_values
-        return Tensor.make(
-            grad_output._tensor._storage,
-            a._tensor.shape,
-            a._tensor.strides,
-            backend=grad_output.backend,
-        )
-
-
+    def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
+        # TODO: Implement for Task 2.4.
+        (a_tensor,) = ctx.saved_tensors
+        return minitorch.Tensor.make(grad_output._tensor._storage, a_tensor.shape, a_tensor.strides, backend=grad_output.backend), 0.0
+        
 class View(Function):
     @staticmethod
     def forward(ctx: Context, a: Tensor, shape: Tensor) -> Tensor:

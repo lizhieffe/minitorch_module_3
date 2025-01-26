@@ -276,17 +276,27 @@ class TensorData:
             New `TensorData` with the same storage and a new dimension order.
         """
         
+        # assert list(sorted(order)) == list(
+        #     range(len(self.shape))
+        # ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
+
+        # shape = []
+        # for i in order:
+        #   shape.append(self.shape[i])
+        # # shape = [self.shape[i] for i in order]
+        # strides = [self.strides[i] for i in order]
+        
+        # return TensorData(self._storage, shape=tuple(shape), strides=tuple(strides))
+
         assert list(sorted(order)) == list(
             range(len(self.shape))
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
 
-        shape = []
-        for i in order:
-          shape.append(self.shape[i])
-        # shape = [self.shape[i] for i in order]
-        strides = [self.strides[i] for i in order]
-        
-        return TensorData(self._storage, shape=tuple(shape), strides=tuple(strides))
+        return TensorData(
+            self._storage,
+            tuple(self.shape[x] for x in order),
+            tuple(self.strides[x] for x in order),
+        )
 
     def to_string(self) -> str:
         s = ""
