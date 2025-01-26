@@ -189,6 +189,7 @@ def tensor_map(
 
         in_val = in_storage[in_pos]
         out[i] = fn(in_val)
+        # out[i] = 123
 
     return cuda.jit()(_map)  # type: ignore
 
@@ -277,18 +278,20 @@ def _sum_practice(out: Storage, a: Storage, size: int) -> None:
     pos = cuda.threadIdx.x
 
     if i >= size:
-        return
-    
-    cache[pos] = a[i]
+        cache[pos] = 0
+    else:
+        cache[pos] = a[i]
+
     offset = 1
     while offset < BLOCK_DIM:
         next_offset = offset * 2
         numba.cuda.syncthreads()
         
-        if pos % next_offset == 0 and (pos + offset < BLOCK_DIM):
+        if pos % next_offset == 0:
             cache[pos] += cache[pos + offset]
         
         offset = next_offset
+
     numba.cuda.syncthreads()
     if pos == 0:
         out[out_pos] = cache[0]
@@ -355,10 +358,7 @@ def tensor_reduce(
         a_index[reduce_dim] = pos
         a_pos = index_to_position(a_index, a_strides)
         a_val = a_storage[a_pos]
-        if pos < reduce_max_i:
-            cache[pos] = a_val
-        else:
-            cache[pos] = reduce_value
+        cache[pos] = a_val
 
         offset = 1
         while offset < reduce_max_i:
