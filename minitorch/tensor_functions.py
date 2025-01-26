@@ -214,21 +214,6 @@ class IsClose(Function):
 
 
 class Permute(Function):
-    # @staticmethod
-    # def forward(ctx: Context, a: Tensor, order: Tensor) -> Tensor:
-    #     ctx.save_for_backward(a, order)
-    #     assert order.dims == 1
-    #     order_list = [int(order[i]) for i in range(order.shape[0])]
-    #     return a._new(a._tensor.permute(*order_list))
-
-    # @staticmethod
-    # def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
-    #     (a, order) = ctx.saved_tensors
-    #     # return a.ones(a._tensor.shape) * grad_output, a.ones(order._tensor.shape) * grad_output
-    #     # return a.make(grad_output._tensor._storage, a._tensor.shape, a._tensor.strides, backend=grad_output.backend), a.make(grad_output._tensor._storage, order._tensor.shape, order._tensor.strides, backend=grad_output.backend)
-    #     return a.make(grad_output._tensor._storage, a._tensor.shape, a._tensor.strides, backend=grad_output.backend), a.zeros(order._tensor.shape)
-
-
     @staticmethod
     def forward(ctx: Context, a: Tensor, order: Tensor) -> Tensor:
         # TODO: Implement for Task 2.3.
