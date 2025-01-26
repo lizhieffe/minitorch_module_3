@@ -340,8 +340,28 @@ def tensor_reduce(
         out_pos = cuda.blockIdx.x
         pos = cuda.threadIdx.x
 
-        # TODO: Implement for Task 3.3.
-        raise NotImplementedError("Need to implement for Task 3.3")
+        # Each block handles an output element.
+        # Within a block, each thread handles an index in the original matrix to
+        # reduce.
+
+        reduce_max_i = a_shape[reduce_dim]
+        if pos >= reduce_max_i:
+            return
+
+        to_index(out_pos, out_shape, out_index)
+        
+        a_index = out_index
+        a_index[reduce_dim] = pos
+        a_pos = index_to_position(a_index, a_strides)
+        a_val = a_storage[a_pos]
+        cache[pos] = a_val
+
+        offset = 1
+        while offset < reduce_max_i:
+            next_offset = offset * 2
+            if pos % next_offset == 1:
+                cache[pos] += cache[pos + offset]
+        out[out_pos] = cache[0]
 
     return jit(_reduce)  # type: ignore
 
