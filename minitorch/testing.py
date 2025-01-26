@@ -9,7 +9,9 @@ A = TypeVar("A")
 
 class MathTest(Generic[A]):
 
-
+    @staticmethod
+    def id(a: A) -> A:
+        return a
 
     @staticmethod
     def neg(a: A) -> A:

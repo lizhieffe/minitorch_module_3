@@ -183,13 +183,12 @@ def tensor_map(
 
         to_index(i, out_shape, out_index)
 
-        # broadcast_index(out_index, out_shape, in_shape, in_index)
-        # in_pos = index_to_position(in_index, in_strides)
-        in_pos = index_to_position(out_index, in_strides)
-
+        broadcast_index(out_index, out_shape, in_shape, in_index)
+        in_pos = index_to_position(in_index, in_strides)
         in_val = in_storage[in_pos]
-        out[i] = fn(in_val)
-        # out[i] = 123
+
+        out_pos = index_to_position(out_index, out_strides)
+        out[out_pos] = fn(in_val)
 
     return cuda.jit()(_map)  # type: ignore
 
@@ -349,8 +348,7 @@ def tensor_reduce(
         # reduce.
 
         reduce_max_i = a_shape[reduce_dim]
-        if pos >= reduce_max_i:
-            return
+        
 
         to_index(out_pos, out_shape, out_index)
         
@@ -358,7 +356,11 @@ def tensor_reduce(
         a_index[reduce_dim] = pos
         a_pos = index_to_position(a_index, a_strides)
         a_val = a_storage[a_pos]
-        cache[pos] = a_val
+
+        if pos >= reduce_max_i:
+            cache[pos] = reduce_value
+        else:
+            cache[pos] = a_val
 
         offset = 1
         while offset < reduce_max_i:

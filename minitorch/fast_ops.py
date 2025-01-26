@@ -169,12 +169,14 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # When `out` and `in` are stride-aligned, avoid indexing
-        if np.array_equal(in_strides, out_strides) and np.array_equal(in_shape, out_shape):
-            # for out_pos in prange(out.shape[0]):
-            for out_pos in range(out.shape[0]):
-                out[out_pos] = fn(in_storage[out_pos])
-            return
+        # TODO(lizhi): This commented out code doesn't work for some reason. Figure it out!!
+        #
+        # # When `out` and `in` are stride-aligned, avoid indexing
+        # if np.array_equal(in_strides, out_strides) and np.array_equal(in_shape, out_shape):
+        #     for out_pos in range(out.shape[0]):
+        #         out[out_pos] = fn(in_storage[out_pos])
+        #     return
+
 
         # Not stride-aligned.
         for out_pos in prange(out.shape[0]):
@@ -188,7 +190,8 @@ def tensor_map(
             # in_idx -> in_pos
             in_pos = index_to_position(in_idx, in_strides)
 
-            out[out_pos] = fn(in_storage[in_pos])
+            real_out_pos = index_to_position(out_idx, out_strides)
+            out[real_out_pos] = fn(in_storage[in_pos])
 
     return njit(_map, parallel=True)  # type: ignore
 
