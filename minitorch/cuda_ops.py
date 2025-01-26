@@ -231,8 +231,20 @@ def tensor_zip(
         b_index = cuda.local.array(MAX_DIMS, numba.int32)
         i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
 
-        # TODO: Implement for Task 3.3.
-        raise NotImplementedError("Need to implement for Task 3.3")
+        if i >= out_size:
+            return
+        
+        to_index(i, out_shape, out_index)
+
+        broadcast_index(out_index, out_shape, a_shape, a_index)
+        a_pos = index_to_position(a_index, a_strides)
+        a_val = a_storage[a_pos]
+
+        broadcast_index(out_index, out_shape, b_shape, b_index)
+        b_pos = index_to_position(b_index, b_strides)
+        b_val = b_storage[b_pos]
+
+        out[i] = fn(a_val, b_val)
 
     return cuda.jit()(_zip)  # type: ignore
 
@@ -264,8 +276,21 @@ def _sum_practice(out: Storage, a: Storage, size: int) -> None:
     i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
     pos = cuda.threadIdx.x
 
-    # TODO: Implement for Task 3.3.
-    raise NotImplementedError("Need to implement for Task 3.3")
+    if i >= size:
+        return
+    
+    cache[pos] = a[i]
+    offset = 1
+    while offset < size:
+        next_offset = offset * 2
+        numba.cuda.syncthreads()
+        
+        if pos % next_offset == 0:
+            cache[pos] += cache[pos + offset]
+        
+        offset = next_offset
+
+    out[cuda.blockIdx.x] = cache[0]
 
 
 jit_sum_practice = cuda.jit()(_sum_practice)
