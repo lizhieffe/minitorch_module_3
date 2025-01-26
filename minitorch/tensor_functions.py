@@ -235,6 +235,7 @@ class Permute(Function):
         order2 = [int(order[i]) for i in range(order.size)]
         ctx.save_for_backward(a._tensor)
         tensor_data = a._tensor.permute(*order2)
+        
         return a._new(tensor_data)
 
     @staticmethod

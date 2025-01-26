@@ -43,8 +43,10 @@ def index_to_position(index: Index, strides: Strides) -> int:
         Position in storage
     """
     ret = 0
-    for i in range(len(index.shape)):
-        ret += int(index[i]) * int(strides[i])
+    for i in range(index.shape[0]):
+        delta = int(index[i]) * int(strides[i])
+        ret += delta
+        # print(f"===lizhi tensor_data index_to_position {i=} {int(index[i])=} {int(strides[i])=} {delta=} {ret=}")
     return ret
 
 
@@ -203,7 +205,7 @@ class TensorData:
         self.dims = len(strides)
         self.size = int(prod(shape))
         self.shape = shape
-        assert len(self._storage) == self.size
+        assert len(self._storage) == self.size, f"{len(self._storage)=}, {self.size}="
 
     def to_cuda_(self) -> None:  # pragma: no cover
         if not numba.cuda.is_cuda_array(self._storage):
@@ -275,28 +277,19 @@ class TensorData:
         Returns:
             New `TensorData` with the same storage and a new dimension order.
         """
-        
-        # assert list(sorted(order)) == list(
-        #     range(len(self.shape))
-        # ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
-
-        # shape = []
-        # for i in order:
-        #   shape.append(self.shape[i])
-        # # shape = [self.shape[i] for i in order]
-        # strides = [self.strides[i] for i in order]
-        
-        # return TensorData(self._storage, shape=tuple(shape), strides=tuple(strides))
-
         assert list(sorted(order)) == list(
             range(len(self.shape))
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
 
-        return TensorData(
+        new_shape = tuple(self.shape[x] for x in order)
+        new_strides = tuple(self.strides[x] for x in order)
+
+        ret = TensorData(
             self._storage,
-            tuple(self.shape[x] for x in order),
-            tuple(self.strides[x] for x in order),
+            new_shape,
+            new_strides,
         )
+        return ret
 
     def to_string(self) -> str:
         s = ""
@@ -309,6 +302,7 @@ class TensorData:
                     break
             s += l
             v = self.get(index)
+            # print(f"===lizhi {index=} {v=}")
             s += f"{v:3.2f}"
             l = ""
             for i in range(len(index) - 1, -1, -1):
