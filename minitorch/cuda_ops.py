@@ -355,7 +355,10 @@ def tensor_reduce(
         a_index[reduce_dim] = pos
         a_pos = index_to_position(a_index, a_strides)
         a_val = a_storage[a_pos]
-        cache[pos] = a_val
+        if pos < reduce_max_i:
+            cache[pos] = a_val
+        else:
+            cache[pos] = reduce_value
 
         offset = 1
         while offset < reduce_max_i:
