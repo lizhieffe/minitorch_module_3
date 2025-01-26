@@ -60,7 +60,6 @@ class CudaOps(TensorOps):
             # Instantiate and run the cuda kernel.
             threadsperblock = THREADS_PER_BLOCK
             blockspergrid = (out.size + THREADS_PER_BLOCK - 1) // THREADS_PER_BLOCK
-            print(f"---lizhi cuda_ops {a.tuple()[0]=} {a.tuple()[0][0]=}")
             f[blockspergrid, threadsperblock](*out.tuple(), out.size, *a.tuple())  # type: ignore
             return out
 
@@ -274,6 +273,7 @@ def _sum_practice(out: Storage, a: Storage, size: int) -> None:
 
     cache = cuda.shared.array(BLOCK_DIM, numba.float64)
     i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+    out_pos = cuda.blockIdx.x
     pos = cuda.threadIdx.x
 
     if i >= size:
@@ -281,16 +281,17 @@ def _sum_practice(out: Storage, a: Storage, size: int) -> None:
     
     cache[pos] = a[i]
     offset = 1
-    while offset < size:
+    while offset < BLOCK_DIM:
         next_offset = offset * 2
         numba.cuda.syncthreads()
         
-        if pos % next_offset == 0:
+        if pos % next_offset == 0 and (pos + offset < BLOCK_DIM):
             cache[pos] += cache[pos + offset]
         
         offset = next_offset
-
-    out[cuda.blockIdx.x] = cache[0]
+    numba.cuda.syncthreads()
+    if pos == 0:
+        out[out_pos] = cache[0]
 
 
 jit_sum_practice = cuda.jit()(_sum_practice)
@@ -359,9 +360,15 @@ def tensor_reduce(
         offset = 1
         while offset < reduce_max_i:
             next_offset = offset * 2
-            if pos % next_offset == 1:
-                cache[pos] += cache[pos + offset]
-        out[out_pos] = cache[0]
+            numba.cuda.syncthreads()
+
+            if pos % next_offset == 0 and pos + offset < reduce_max_i:
+                cache[pos] = fn(cache[pos], cache[pos + offset])
+            offset = next_offset
+        
+        numba.cuda.syncthreads()
+        if pos == 0:
+          out[out_pos] = cache[0]
 
     return jit(_reduce)  # type: ignore
 

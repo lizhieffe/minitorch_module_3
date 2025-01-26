@@ -44,7 +44,7 @@ def index_to_position(index: Index, strides: Strides) -> int:
     """
     ret = 0
     for i in range(len(index.shape)):
-        ret += index[i] * strides[i]
+        ret += int(index[i]) * int(strides[i])
     return ret
 
 
