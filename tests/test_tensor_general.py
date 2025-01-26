@@ -231,6 +231,8 @@ if numba.cuda.is_available():
         y = minitorch.tensor(y1, backend=shared["cuda"])
         z2 = x @ y
 
+        print(f"===lizhi {x=} {y=} {z2=}")
+
         for i in range(2):
             for j in range(2):
                 assert_close(z[i, j], z2[i, j])

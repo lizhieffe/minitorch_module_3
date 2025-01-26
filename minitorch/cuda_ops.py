@@ -401,6 +401,11 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
                   out[i, j] += a[i, k] * b[k, j]
     ```
 
+    c11 = a11*b11+a12*b21
+    c12 = a11*b12+a12*b22
+    c21 = a21*b11+b22*b21
+    c22 = a21*b12*a22*b22
+
     Args:
     ----
         out (Storage): storage for `out` tensor.
@@ -410,8 +415,25 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
 
     """
     BLOCK_DIM = 32
-    # TODO: Implement for Task 3.3.
-    raise NotImplementedError("Need to implement for Task 3.3")
+    cache_a = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
+    cache_b = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
+
+    i = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+    j = cuda.blockIdx.y * cuda.blockDim.y + cuda.threadIdx.y
+
+    if i >= size or j >= size:
+        return
+    
+    pos = i * size + j
+    cache_a[i][j] = a[pos]
+    cache_b[i][j] = b[pos]
+
+    numba.cuda.syncthreads()
+
+    ret = 0
+    for k in range(size):
+        ret += cache_a[i][k] * cache_b[k][j]
+    out[pos] = 12
 
 
 jit_mm_practice = jit(_mm_practice)
