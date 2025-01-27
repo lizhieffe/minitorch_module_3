@@ -504,38 +504,29 @@ def _tensor_matrix_multiply(
     #    b) Copy into shared memory for b matrix
     #    c) Compute the dot produce for position c[i, j]
 
-    if i >= a_shape[-2] or j >= b_shape[-1]:
-        return
-
-    idx = cuda.local.array(3, numba.float64)
-    idx[0] = batch
-    idx[1] = i
-    idx[2] = j
-
-    out_pos = index_to_position(idx, out_strides)
-
+    I = out_shape[1]
+    J = out_shape[2]
     K = a_shape[-1]
 
-    total = 0
+    total = 0.0
     for it in range(0, K, BLOCK_DIM):
-        for kk in range(BLOCK_DIM):
-            a_pos = a_batch_stride * batch + a_strides[1] * i + a_strides[2] * (it * BLOCK_DIM + kk)
-            if a_pos < a_storage.shape[0]:
-                a_shared[pi][pj] = a_storage[a_pos]
+        if i < I and pj + it < K:
+            a_pos = a_batch_stride * batch + a_strides[1] * i + a_strides[2] * (it + pj)
+            a_shared[pi][pj] = a_storage[a_pos]
 
-            b_pos = b_batch_stride * batch + b_strides[1] * (it * BLOCK_DIM + kk) + a_strides[2] * j
-            if b_pos < b_storage.shape[0]:
-                b_shared[pi][pj] = b_storage[b_pos]
+        if j < J and pi +it < K:
+            b_pos = b_batch_stride * batch + b_strides[1] * (it + pi) + b_strides[2] * j
+            b_shared[pi][pj] = b_storage[b_pos]
 
         numba.cuda.syncthreads()
-        for kk in range(BLOCK_DIM):
-            if it * BLOCK_DIM + kk < a_shape[2]:
-                total += a_shared[pi][kk] * b_shared[kk][pj]
-            else:
-                break
-        numba.cuda.syncthreads()
-    out[out_pos] = total
 
+        for pk in range(BLOCK_DIM):
+            if it + pk < K:
+                total += a_shared[pi][pk] * b_shared[pk][pj]
+    
+    if i < I and j < J:
+        out_pos = batch * out_strides[0] + i * out_strides[1] + j * out_strides[2]
+        out[out_pos] = total
 
 
 tensor_matrix_multiply = jit(_tensor_matrix_multiply)
