@@ -433,7 +433,7 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
     ret = 0
     for k in range(size):
         ret += cache_a[i][k] * cache_b[k][j]
-    out[pos] = 12
+    out[pos] = ret
 
 
 jit_mm_practice = jit(_mm_practice)
